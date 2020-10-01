@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+#include "lint_subfunc.h"
 
 /* 文字列から改行を削除する */
 void trim_nl(char *s) {
@@ -32,3 +33,8 @@ int lint_length(int* lint) {
   return length;
 }
 
+void lint_copy(int *lint_0, int *lint_1) {
+  for(int i = 0; lint_0[i] != -1; i++) {
+    lint_1[i] = lint_0[i];
+  }
+}
