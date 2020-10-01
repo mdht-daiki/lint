@@ -1,7 +1,14 @@
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "lint_subfunc.h"
+
+/* Lintのコンストラクタ */
+void Lint_constructor(Lint *l_this, int length, int play) {
+  l_this->length = length;
+  l_this->digit = (int *)malloc(sizeof(int) * (length + play));
+}
 
 /* 文字列から改行を削除する */
 void trim_nl(char *s) {

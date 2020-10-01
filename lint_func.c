@@ -9,8 +9,7 @@
 /* 文字列をint型配列に変換する */
 Lint string_to_lint(char* S) {
   Lint l;
-  l.length = strlen(S);
-  l.digit = (int *)malloc(sizeof(int)*(l.length + 1));
+  Lint_constructor(&l, strlen(S), 1);
   for(int i = 0; i < l.length; i++) {
     l.digit[i] = S[l.length - i - 1] - '0';
   }
@@ -49,8 +48,7 @@ Lint *input_lint(int *n) {
 /* 繰り上がり・繰り下がり処理 */
 Lint carry_borrow(Lint l) {
   Lint ans;
-  ans.length = l.length;
-  ans.digit = (int *)malloc(sizeof(int) * (ans.length + LINT_CB_BUF));   /* 桁数に余裕を持たせる */
+  Lint_constructor(&ans, l.length, LINT_CB_BUF);
   lint_copy(l, ans);
 
   for(int i = 0; i < l.length; i++) {
@@ -87,8 +85,8 @@ Lint carry_borrow(Lint l) {
 /* 足し算 */
 Lint addition(Lint a, Lint b) {
   Lint add;
-  add.length = a.length >= b.length ? a.length : b.length;
-  add.digit = (int *)malloc(sizeof(int) * (add.length + 1));
+  int length = a.length >= b.length ? a.length : b.length;
+  Lint_constructor(&add, length, 1);
   for(int i = 0; i < add.length; i++) {
     add.digit[i] = (i < a.length ? a.digit[i] : 0) + (i < b.length ? b.digit[i] : 0);
   }
@@ -101,8 +99,8 @@ Lint addition(Lint a, Lint b) {
 /* 引き算 */
 Lint subtraction(Lint a, Lint b) {
   Lint sub;
-  sub.length = a.length >= b.length ? a.length : b.length;
-  sub.digit = (int *)malloc(sizeof(int) * (sub.length + 1));
+  int length = a.length >= b.length ? a.length : b.length;
+  Lint_constructor(&sub, length, 1);
   for(int i = 0; i < sub.length; i++) {
     sub.digit[i] = (i < a.length ? a.digit[i] : 0) - (i < b.length ? b.digit[i] : 0);
   }
