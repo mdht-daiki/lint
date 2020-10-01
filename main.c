@@ -21,6 +21,10 @@ int main(void) {
     lint_to_string(add, buf);
     printf("lint[0] + lint[1] = %s\n", buf);
     free(add);
+    int *sub = subtraction(lint[0], lint[1]);
+    lint_to_string(sub, buf);
+    printf("lint[0] - lint[1] = %s\n", buf);
+    free(sub);
   }
 
   for(i = 0; i < length; i++)

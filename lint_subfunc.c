@@ -29,12 +29,12 @@ int lint_length(int* lint) {
   int length = 0;
   do {
     length++;
-  } while(lint[length] != -1);
+  } while(lint[length] != LINT_END);
   return length;
 }
 
 void lint_copy(int *lint_0, int *lint_1) {
-  for(int i = 0; lint_0[i] != -1; i++) {
+  for(int i = 0; lint_0[i] != LINT_END; i++) {
     lint_1[i] = lint_0[i];
   }
 }

@@ -13,7 +13,7 @@ int *string_to_lint(char* S) {
   for(int i = 0; i < N; i++) {
     lint[i] = S[N - i - 1] - '0';
   }
-  lint[N] = -1;   /* 番兵 */
+  lint[N] = LINT_END;   /* 番兵 */
   return lint;
 }
 
@@ -51,7 +51,7 @@ int *carry_borrow(int *lint) {
   int *ans = (int *)malloc(sizeof(int) * (length + LINT_CB_BUF));   /* 桁数に余裕を持たせる */
   lint_copy(lint, ans);
 
-  for(int i = 0; i < length-1; i++) {
+  for(int i = 0; i < length; i++) {
     /* 繰り上がり */
     if(ans[i] >= 10) {
       int n = ans[i] / 10;
@@ -66,18 +66,18 @@ int *carry_borrow(int *lint) {
       ans[i + 1] -= n;
     }
   }
-  ans[length] = -1;
+  ans[length] = LINT_END;
   /* 最大桁が10以上の時、桁数を増やす */
   while(ans[length - 1] >= 10) {
     int n = ans[length - 1] / 10;
     ans[length - 1] -= n * 10;
     ans[length++] = n;
-    ans[length] = -1;
+    ans[length] = LINT_END;
   }
 
   /* 最大桁が0かつ桁数が1桁でない時、最大桁の0を消す */
   while(length >= 2 && ans[length - 1] == 0) {
-    ans[--length] = -1;
+    ans[--length] = LINT_END;
   }
   return ans;
 }
@@ -89,8 +89,21 @@ int *addition(int *lint_a, int *lint_b) {
   for(int i = 0; i < length; i++) {
     add[i] = (i < length_a ? lint_a[i] : 0) + (i < length_b ? lint_b[i] : 0);
   }
-  add[length] = -1;
+  add[length] = LINT_END;
   int *ans = carry_borrow(add);
   free(add);
+  return ans;
+}
+
+int *subtraction(int *lint_a, int *lint_b) {
+  int length_a = lint_length(lint_a), length_b = lint_length(lint_b);
+  int length = length_a >= length_b ? length_a : length_b;
+  int *sub = (int *)malloc(sizeof(int) * (length + 1));
+  for(int i = 0; i < length; i++) {
+    sub[i] = (i < length_a ? lint_a[i] : 0) - (i < length_b ? lint_b[i] : 0);
+  }
+  sub[length] = LINT_END;
+  int *ans = carry_borrow(sub);
+  free(sub);
   return ans;
 }
