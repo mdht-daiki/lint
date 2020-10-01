@@ -1,7 +1,12 @@
 #ifndef LINT_STRUCT_H
 #define LINT_STRUCT_H
 
+#define MAX_LENGTH 1000
+#define LINT_END -1000
+#define LINT_CB_BUF 10
+
 typedef enum {PLUS, MINUS} pm;
+typedef enum {LEFT, EQUAL, RIGHT} compare;
 
 /* 整数 */
 typedef struct {

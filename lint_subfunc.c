@@ -32,9 +32,11 @@ int check_string(char* S) {
   return 1;
 }
 
-void lint_copy(Lint l0, Lint l1) {
+/* l0をl1にコピーする */
+void lint_copy(Lint l0, Lint *l1) {
+  l1->sign_pm = l0.sign_pm;
   for(int i = 0; l0.digit[i] != LINT_END; i++) {
-    l1.digit[i] = l0.digit[i];
+    l1->digit[i] = l0.digit[i];
   }
 }
 
@@ -51,10 +53,15 @@ Lint string_to_lint(char* S) {
 
 /* Lintを文字列に変換する */
 void lint_to_string(Lint l, char *ans) {
+  if(l.sign_pm == MINUS) {
+    ans[0] = '-';
+  } else {
+    ans[0] = ' ';
+  } 
   for(int i = 0; i < l.length; i++) {
-    ans[i] = l.digit[l.length - i - 1] + '0';
+    ans[i + 1] = l.digit[l.length - i - 1] + '0';
   }
-  ans[l.length] = '\0';
+  ans[l.length + 1] = '\0';
 }
 
 /* Lintを入力する */
@@ -81,7 +88,7 @@ Lint *input_lint(int *n) {
 Lint carry_borrow(Lint l) {
   Lint ans;
   Lint_constructor(&ans, l.length, LINT_CB_BUF);
-  lint_copy(l, ans);
+  lint_copy(l, &ans);
 
   for(int i = 0; i < l.length; i++) {
     /* 繰り上がり */
@@ -112,4 +119,32 @@ Lint carry_borrow(Lint l) {
     ans.digit[--ans.length] = LINT_END;
   }
   return ans;
+}
+
+/* 大小比較 */
+compare Lint_compare(Lint a, Lint b) {
+  /* 符号が違う場合 */
+  if(a.sign_pm == PLUS && b.sign_pm == MINUS) return LEFT;
+  if(a.sign_pm == MINUS && b.sign_pm == PLUS) return RIGHT;
+
+  /* 符号が同じ場合 */
+  if(a.sign_pm == PLUS && b.sign_pm == PLUS) {
+    if(a.length > b.length) return LEFT;
+    if(a.length < b.length) return RIGHT;
+    for(int i = a.length - 1; i >= 0; i--) {
+      if(a.digit[i] > b.digit[i]) return LEFT;
+      if(a.digit[i] < b.digit[i]) return RIGHT;
+    }
+  }
+
+  if(a.sign_pm == MINUS && b.sign_pm == MINUS) {
+    if(a.length > b.length) return RIGHT;
+    if(a.length < b.length) return LEFT;
+    for(int i = a.length - 1; i >= 0; i--) {
+      if(a.digit[i] > b.digit[i]) return RIGHT;
+      if(a.digit[i] < b.digit[i]) return LEFT;
+    }
+  }
+
+  return EQUAL;
 }

@@ -24,9 +24,18 @@ Lint subtraction(Lint a, Lint b) {
   Lint sub;
   int length = a.length >= b.length ? a.length : b.length;
   Lint_constructor(&sub, length, 1);
-  for(int i = 0; i < sub.length; i++) {
-    sub.digit[i] = (i < a.length ? a.digit[i] : 0) - (i < b.length ? b.digit[i] : 0);
+
+  if(Lint_compare(a, b) == RIGHT) {
+    sub.sign_pm = MINUS;
+    for(int i = 0; i < sub.length; i++) {
+      sub.digit[i] = (i < b.length ? b.digit[i] : 0) - (i < a.length ? a.digit[i] : 0);
+    }
+  } else {
+    for(int i = 0; i < sub.length; i++) {
+      sub.digit[i] = (i < a.length ? a.digit[i] : 0) - (i < b.length ? b.digit[i] : 0);
+    }
   }
+
   sub.digit[sub.length] = LINT_END;
   Lint ans = carry_borrow(sub);
   free(sub.digit);
