@@ -1,6 +1,8 @@
-int **input_lint(int *n);
-int *string_to_lint(char* S);
-void lint_to_string(int *lint, char *ans);
-int *carry_borrow(int *lint);
-int *addition(int *lint_a, int *lint_b);
-int *subtraction(int *lint_a, int *lint_b);
+#include "lint_subfunc.h"
+
+Lint *input_lint(int *n);
+Lint string_to_lint(char* S);
+void lint_to_string(Lint l, char *ans);
+Lint carry_borrow(Lint l);
+Lint addition(Lint a, Lint b);
+Lint subtraction(Lint a, Lint b);
