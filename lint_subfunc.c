@@ -57,6 +57,8 @@ int check_string(char* S) {
 /* l0をl1にコピーする */
 void lint_copy(Lint l0, Lint *l1) {
   l1->sign_pm = l0.sign_pm;
+  l1->dp = l0.dp;
+  l1->length = l0.length;
   for(int i = 0; l0.digit[i] != LINT_END; i++) {
     l1->digit[i] = l0.digit[i];
   }
@@ -66,18 +68,22 @@ void lint_copy(Lint l0, Lint *l1) {
 Lint string_to_lint(char* S) {
   Lint l;
   Lint_constructor(&l, strlen(S), 1);
+
   int s_pos = l.length - 1;
   for(int i = 0; i < l.length; i++) {
+
     if(i == l.length - 1 && S[s_pos] == '-'){
       l.sign_pm = MINUS;
       l.length--;
       s_pos--;
     } else {
+
       if(S[s_pos] == '.') {
         l.dp = i;
         l.length--;
         s_pos--;
       }
+
       l.digit[i] = S[s_pos--] - '0';
     }    
   }
@@ -125,6 +131,7 @@ Lint carry_borrow(Lint l) {
   Lint_constructor(&ans, l.length, LINT_CB_BUF);
   lint_copy(l, &ans);
 
+  int ans_whole = ans.length - ans.dp;
   for(int i = 0; i < l.length-1; i++) {
     /* 繰り上がり */
     if(ans.digit[i] >= 10) {
@@ -141,6 +148,7 @@ Lint carry_borrow(Lint l) {
     }
   }
   ans.digit[ans.length] = LINT_END;
+
   /* 最大桁が10以上の時、桁数を増やす */
   while(ans.digit[ans.length - 1] >= 10) {
     int n = ans.digit[ans.length - 1] / 10;
@@ -150,7 +158,7 @@ Lint carry_borrow(Lint l) {
   }
 
   /* 最大桁が0かつ桁数が1桁でない時、最大桁の0を消す */
-  while(ans.length >= 2 && ans.digit[ans.length - 1] == 0) {
+  while(ans_whole >= 2 && ans.digit[ans.length - 1] == 0) {
     ans.digit[--ans.length] = LINT_END;
   }
   return ans;
@@ -165,9 +173,13 @@ compare invert_compare(compare c) {
 
 /* 絶対値の比較 */
 compare Lint_abstract_compare(Lint a, Lint b) {
-  if(a.length > b.length) return LEFT;
-  if(a.length < b.length) return RIGHT;
-  for(int i = a.length - 1; i >= 0; i--) {
+  int a_whole = a.length - a.dp;
+  int b_whole = b.length - b.dp;
+  if(a_whole > b_whole) return LEFT;
+  if(a_whole < b_whole) return RIGHT;
+
+  int length = a.length >= b.length ? a.length : b.length;
+  for(int i = length - 1; i >= 0; i--) {
     if(a.digit[i] > b.digit[i]) return LEFT;
     if(a.digit[i] < b.digit[i]) return RIGHT;
   }
@@ -190,6 +202,7 @@ compare Lint_compare(Lint a, Lint b) {
 
   return EQUAL;
 }
+
 /* 絶対値の和 */
 void Lint_abstract_add(Lint *ans, Lint a, Lint b) {
   for(int i = 0; i < ans->length; i++) {
@@ -197,6 +210,7 @@ void Lint_abstract_add(Lint *ans, Lint a, Lint b) {
   }
   ans->digit[ans->length] = LINT_END;
 }
+
 /* 絶対値の差 */
 void Lint_abstract_sub(Lint *ans, Lint a, Lint b) {
   if(Lint_abstract_compare(a, b) == LEFT)
@@ -208,4 +222,38 @@ void Lint_abstract_sub(Lint *ans, Lint a, Lint b) {
       ans->digit[i] = (i < b.length ? b.digit[i] : 0) - (i < a.length ? a.digit[i] : 0);
     }
   ans->digit[ans->length] = LINT_END;
+}
+
+/* 10^n倍する */
+Lint Lint_zero_fill(Lint l, int n) {
+  Lint ans;
+  Lint_constructor(&ans, l.length + n, 1);
+  ans.dp = l.dp + n;
+  ans.sign_pm = l.sign_pm;
+  for(int i = 0; i < n; i++)
+    ans.digit[i] = 0;
+  
+  for(int i = 0; i < l.length; i++)
+    ans.digit[i + n] = l.digit[i];
+  ans.digit[ans.length] = LINT_END;
+  char buf[MAX_LENGTH];
+  return ans;
+}
+
+/* 小数点以下の桁数を揃える */
+void arrange_decimal(Lint a, Lint b, Lint *a_fixed, Lint *b_fixed) {
+    if(a.dp > b.dp) {
+    Lint_constructor(a_fixed, a.length, 0);
+    lint_copy(a, a_fixed);
+    *b_fixed = Lint_zero_fill(b, a.dp - b.dp);
+  } else if(a.dp < b.dp) {
+    *a_fixed = Lint_zero_fill(a, b.dp - a.dp);
+    Lint_constructor(b_fixed, a.length, 0);
+    lint_copy(b, b_fixed);
+  } else {
+    Lint_constructor(a_fixed, a.length, 0);
+    lint_copy(a, a_fixed);
+    Lint_constructor(b_fixed, a.length, 0);
+    lint_copy(b, b_fixed);
+  }
 }

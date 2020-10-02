@@ -8,20 +8,30 @@
 /* 足し算 */
 Lint addition(Lint a, Lint b) {
   Lint add;
-  int length = a.length >= b.length ? a.length : b.length;
+  int a_whole = a.length - a.dp;
+  int b_whole = b.length - b.dp;
+  int add_whole = a_whole >= b_whole ? a_whole : b_whole;
+  int add_dp = a.dp >= b.dp ? a.dp : b.dp;
+  int length = add_whole + add_dp;
+
   Lint_constructor(&add, length, 1);
+  add.dp = add_dp;
+
+  Lint a_fixed, b_fixed;
+  arrange_decimal(a, b, &a_fixed, &b_fixed);
+
   if(a.sign_pm == b.sign_pm) {
-    Lint_abstract_add(&add, a, b);
+    Lint_abstract_add(&add, a_fixed, b_fixed);
     add.sign_pm = a.sign_pm;
   } else {
-    Lint_abstract_sub(&add, a, b);
+    Lint_abstract_sub(&add, a_fixed, b_fixed);
     if(a.sign_pm == PLUS) {
-      if(Lint_abstract_compare(a, b) == LEFT)
+      if(Lint_abstract_compare(a_fixed, b_fixed) == LEFT)
         add.sign_pm = PLUS;
       else
         add.sign_pm = MINUS;
     } else {
-      if(Lint_abstract_compare(a, b) == LEFT)
+      if(Lint_abstract_compare(a_fixed, b_fixed) == LEFT)
         add.sign_pm = MINUS;
       else
         add.sign_pm = PLUS;
@@ -35,15 +45,24 @@ Lint addition(Lint a, Lint b) {
 /* 引き算 */
 Lint subtraction(Lint a, Lint b) {
   Lint sub;
-  int length = a.length >= b.length ? a.length : b.length;
-  Lint_constructor(&sub, length, 1);
+  int a_whole = a.length - a.dp;
+  int b_whole = b.length - b.dp;
+  int sub_whole = a_whole >= b_whole ? a_whole : b_whole;
+  int sub_dp = a.dp >= b.dp ? a.dp : b.dp;
+  int length = sub_whole + sub_dp;
 
-  if(Lint_compare(a, b) == RIGHT)
+  Lint_constructor(&sub, length, 1);
+  sub.dp = sub_dp;
+
+  Lint a_fixed, b_fixed;
+  arrange_decimal(a, b, &a_fixed, &b_fixed);
+
+  if(Lint_compare(a_fixed, b_fixed) == RIGHT)
     sub.sign_pm = MINUS;
   if(a.sign_pm != b.sign_pm)
-    Lint_abstract_add(&sub, a, b);
+    Lint_abstract_add(&sub, a_fixed, b_fixed);
   else
-    Lint_abstract_sub(&sub, a, b);
+    Lint_abstract_sub(&sub, a_fixed, b_fixed);
   
   Lint ans = carry_borrow(sub);
   free(sub.digit);
