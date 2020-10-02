@@ -25,6 +25,10 @@ int main(void) {
     lint_to_string(sub, buf);
     printf("lint[0] - lint[1] = %s\n", buf);
     free(sub.digit);
+    Lint mul = multiplication(l_list[0], l_list[1]);
+    lint_to_string(mul, buf);
+    printf("lint[0] * lint[1] = %s\n", buf);
+    free(mul.digit);
   }
 
   for(i = 0; i < length; i++)

@@ -9,3 +9,7 @@ void lint_to_string(Lint l, char *ans);                       /* Lintを文字�
 Lint *input_lint(int *n);                                     /* Lintを入力する */
 Lint carry_borrow(Lint l);                                    /* 繰り上がり・繰り下がり処理 */
 compare Lint_compare(Lint a, Lint b);                         /* 大小比較 */
+compare invert_compare(compare c);                            /* 比較結果をひっくり返す */
+compare Lint_abstract_compare(Lint a, Lint b);                /* 絶対値の比較 */
+void Lint_abstract_add(Lint *ans, Lint a, Lint b);            /* 絶対値の和 */
+void Lint_abstract_sub(Lint *ans, Lint a, Lint b);            /* 絶対値の差 */

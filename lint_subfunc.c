@@ -8,6 +8,9 @@
 void Lint_constructor(Lint *l_this, int length, int play) {
   l_this->length = length;
   l_this->digit = (int *)malloc(sizeof(int) * (length + play));
+  for(int i = 0; i < length; i++) {
+    l_this->digit[i] = 0;
+  }
   l_this->sign_pm = PLUS;
 }
 
@@ -25,8 +28,10 @@ int check_string(char* S) {
   int N = strlen(S);
   for(int i = 0; i < N; i++) {
     if(!(isdigit(S[i]))){
-      printf("変換できません。\n");
-      return 0;
+      if(i != 0 || S[i] != '-'){
+        printf("変換できません。\n");
+        return 0;
+      }
     }
   }
   return 1;
@@ -45,7 +50,12 @@ Lint string_to_lint(char* S) {
   Lint l;
   Lint_constructor(&l, strlen(S), 1);
   for(int i = 0; i < l.length; i++) {
-    l.digit[i] = S[l.length - i - 1] - '0';
+    if(i == l.length - 1 && S[l.length - i - 1] == '-'){
+      l.sign_pm = MINUS;
+      l.length--;
+    }
+    else
+      l.digit[i] = S[l.length - i - 1] - '0';
   }
   l.digit[l.length] = LINT_END;   /* 番兵 */
   return l;
@@ -90,7 +100,7 @@ Lint carry_borrow(Lint l) {
   Lint_constructor(&ans, l.length, LINT_CB_BUF);
   lint_copy(l, &ans);
 
-  for(int i = 0; i < l.length; i++) {
+  for(int i = 0; i < l.length-1; i++) {
     /* 繰り上がり */
     if(ans.digit[i] >= 10) {
       int n = ans.digit[i] / 10;
@@ -121,6 +131,24 @@ Lint carry_borrow(Lint l) {
   return ans;
 }
 
+/* 比較結果をひっくり返す */
+compare invert_compare(compare c) {
+  if(c == LEFT) return RIGHT;
+  if(c == RIGHT) return LEFT;
+  return EQUAL;
+}
+
+/* 絶対値の比較 */
+compare Lint_abstract_compare(Lint a, Lint b) {
+  if(a.length > b.length) return LEFT;
+  if(a.length < b.length) return RIGHT;
+  for(int i = a.length - 1; i >= 0; i--) {
+    if(a.digit[i] > b.digit[i]) return LEFT;
+    if(a.digit[i] < b.digit[i]) return RIGHT;
+  }
+  return EQUAL;
+}
+
 /* 大小比較 */
 compare Lint_compare(Lint a, Lint b) {
   /* 符号が違う場合 */
@@ -128,23 +156,31 @@ compare Lint_compare(Lint a, Lint b) {
   if(a.sign_pm == MINUS && b.sign_pm == PLUS) return RIGHT;
 
   /* 符号が同じ場合 */
-  if(a.sign_pm == PLUS && b.sign_pm == PLUS) {
-    if(a.length > b.length) return LEFT;
-    if(a.length < b.length) return RIGHT;
-    for(int i = a.length - 1; i >= 0; i--) {
-      if(a.digit[i] > b.digit[i]) return LEFT;
-      if(a.digit[i] < b.digit[i]) return RIGHT;
-    }
-  }
+  if(a.sign_pm == PLUS && b.sign_pm == PLUS) 
+    return Lint_abstract_compare(a, b);
 
   if(a.sign_pm == MINUS && b.sign_pm == MINUS) {
-    if(a.length > b.length) return RIGHT;
-    if(a.length < b.length) return LEFT;
-    for(int i = a.length - 1; i >= 0; i--) {
-      if(a.digit[i] > b.digit[i]) return RIGHT;
-      if(a.digit[i] < b.digit[i]) return LEFT;
-    }
+    return invert_compare(Lint_abstract_compare(a, b));
   }
 
   return EQUAL;
+}
+/* 絶対値の和 */
+void Lint_abstract_add(Lint *ans, Lint a, Lint b) {
+  for(int i = 0; i < ans->length; i++) {
+    ans->digit[i] = (i < a.length ? a.digit[i] : 0) + (i < b.length ? b.digit[i] : 0);
+  }
+  ans->digit[ans->length] = LINT_END;
+}
+/* 絶対値の差 */
+void Lint_abstract_sub(Lint *ans, Lint a, Lint b) {
+  if(Lint_abstract_compare(a, b) == LEFT)
+    for(int i = 0; i < ans->length; i++) {
+      ans->digit[i] = (i < a.length ? a.digit[i] : 0) - (i < b.length ? b.digit[i] : 0);
+    }
+  else 
+    for(int i = 0; i < ans->length; i++) {
+      ans->digit[i] = (i < b.length ? b.digit[i] : 0) - (i < a.length ? a.digit[i] : 0);
+    }
+  ans->digit[ans->length] = LINT_END;
 }
