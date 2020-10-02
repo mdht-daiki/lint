@@ -236,7 +236,6 @@ Lint Lint_zero_fill(Lint l, int n) {
   for(int i = 0; i < l.length; i++)
     ans.digit[i + n] = l.digit[i];
   ans.digit[ans.length] = LINT_END;
-  char buf[MAX_LENGTH];
   return ans;
 }
 
@@ -256,4 +255,35 @@ void arrange_decimal(Lint a, Lint b, Lint *a_fixed, Lint *b_fixed) {
     Lint_constructor(b_fixed, a.length, 0);
     lint_copy(b, b_fixed);
   }
+}
+
+Lint Lint_partial(Lint a, int n) {
+  Lint a_partial;
+  Lint_constructor(&a_partial, n, 1);
+
+  int a_whole = a.length - a.dp;
+  if(a_whole < n)
+    a_partial.dp = n - a_whole;
+  
+  int a_pos = a.length - n;
+  for(int partial_pos = 0; partial_pos < n; partial_pos++) {
+    a_partial.digit[partial_pos] = a.digit[a_pos++];
+  }
+  a_partial.digit[n] = LINT_END;
+  return a_partial;
+}
+
+Lint Lint_one_digit(int n) {
+  Lint one;
+  Lint_constructor(&one, 1, 1);
+  one.digit[0] = n;
+  one.digit[1] = LINT_END;
+  return one;
+}
+
+/* 10^n倍する */
+Lint Lint_pow_10(Lint l, int n) {
+  Lint ans = Lint_zero_fill(l, n);
+  ans.dp = l.dp;
+  return ans;
 }

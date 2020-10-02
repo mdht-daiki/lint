@@ -38,6 +38,8 @@ Lint addition(Lint a, Lint b) {
     }
   }
   Lint ans = carry_borrow(add);
+  free(a_fixed.digit);
+  free(b_fixed.digit);
   free(add.digit);
   return ans;
 }
@@ -65,6 +67,8 @@ Lint subtraction(Lint a, Lint b) {
     Lint_abstract_sub(&sub, a_fixed, b_fixed);
   
   Lint ans = carry_borrow(sub);
+  free(a_fixed.digit);
+  free(b_fixed.digit);
   free(sub.digit);
   return ans;
 }
@@ -73,6 +77,9 @@ Lint multiplication(Lint a, Lint b) {
   int length = a.length + b.length - 1;
   Lint mul;
   Lint_constructor(&mul, length, 1);
+  mul.dp = a.dp + b.dp;
+  if(a.sign_pm != b.sign_pm)
+    mul.sign_pm = MINUS;
   for(int i = 0; i < a.length; i++) {
     for(int j = 0; j < b.length; j++) {
       mul.digit[i+j] += a.digit[i] * b.digit[j];
@@ -82,4 +89,57 @@ Lint multiplication(Lint a, Lint b) {
   Lint ans = carry_borrow(mul);
   free(mul.digit);
   return ans;
+}
+
+Lint division(Lint a, Lint b) {
+  Lint div;
+
+  if(a.length < b.length)
+    return Lint_one_digit(0);
+
+  int length = a.length - b.length;
+  Lint a_partial = Lint_partial(a, b.length);
+  if(Lint_compare(a_partial, b) == LEFT)
+    length++;
+  free(a_partial.digit);
+  
+  if(length == 0)
+    return Lint_one_digit(0);
+  Lint *remain = (Lint *)malloc(sizeof(Lint) * (length + 1));
+  remain[length] = Lint_partial(a, a.length - length + 1);
+  Lint_constructor(&div, length, 1);
+  Lint l_list[10];
+  for(int i = 0; i < 10; i++) {
+    l_list[i] = Lint_one_digit(i);
+  }
+  for(int i = length - 1; i >= 0; i--) {
+    div.digit[i] = 9;
+    for(int j = 1; j <= 9; j++) {
+      Lint x = multiplication(b, l_list[j]);
+      if(Lint_compare(x, remain[i + 1]) == LEFT) {
+        div.digit[i] = j - 1;
+        break;
+      }
+      free(x.digit);
+    }
+    Lint x_result = multiplication(b, l_list[div.digit[i]]);
+    remain[i] = subtraction(remain[i + 1], x_result);
+    if(i >= 1) {
+      Lint x1 = subtraction(remain[i + 1], x_result);
+      Lint x2 = Lint_pow_10(x1, 1);
+      remain[i] = addition(x2, l_list[a.digit[i - 1]]);
+      free(x1.digit);
+      free(x2.digit);
+    } else {
+      remain[i] = subtraction(remain[i + 1], x_result);
+    }
+    free(x_result.digit);
+    free(remain[i + 1].digit);
+  }
+  free(remain[0].digit);
+  free(remain);
+  for(int i = 0; i < 10; i++)
+    free(l_list[i].digit);
+  
+  return div;
 }

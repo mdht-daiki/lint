@@ -15,3 +15,6 @@ void Lint_abstract_add(Lint *ans, Lint a, Lint b);                    /* 絶対�
 void Lint_abstract_sub(Lint *ans, Lint a, Lint b);                    /* 絶対値の差 */
 Lint Lint_zero_fill(Lint l, int n);                                   /* 小数点以下の後ろに0をn個足す */
 void arrange_decimal(Lint a, Lint b, Lint *a_fixed, Lint *b_fixed);   /* 小数点以下の桁数を揃える */
+Lint Lint_partial(Lint a, int n);                                     /* aの上位n桁を切り取る */
+Lint Lint_one_digit(int n);
+Lint Lint_pow_10(Lint l, int n);
