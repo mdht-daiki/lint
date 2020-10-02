@@ -12,6 +12,7 @@ void Lint_constructor(Lint *l_this, int length, int play) {
     l_this->digit[i] = 0;
   }
   l_this->sign_pm = PLUS;
+  l_this->dp = 0;
 }
 
 /* 文字列から改行を削除する */
@@ -26,13 +27,29 @@ void trim_nl(char *s) {
 /* 文字列がLintに変換できるものか確認する */
 int check_string(char* S) {
   int N = strlen(S);
+  int cannot_flag = 0, dp_flag = 0;
   for(int i = 0; i < N; i++) {
-    if(!(isdigit(S[i]))){
-      if(i != 0 || S[i] != '-'){
-        printf("変換できません。\n");
-        return 0;
-      }
+    if(!(isdigit(S[i]))) {                              /* 数字以外の記号 */
+      if(S[i] == '-') {
+        if(i != 0) cannot_flag++;                       /* マイナス符号が先頭以外に存在する */
+      } else if(S[i] == '.') {
+        if(i == 0 || i == N - 1) cannot_flag++;         /* 小数点が先頭または最後尾に存在する */
+        else {
+          if(dp_flag != 0) cannot_flag++;               /* 小数点が2つ以上ある */
+          else {
+            dp_flag++;
+            if(S[0] == '-') {
+              if(i == 1) cannot_flag++;                 /* マイナスの直後に小数点が存在する -.000 */
+            }
+          }
+        }
+      } else 
+        cannot_flag++;                                  /* マイナス、小数点以外の記号 */
     }
+  }
+  if(cannot_flag != 0) {
+    printf("変換できません。\n");
+    return 0;
   }
   return 1;
 }
@@ -49,13 +66,20 @@ void lint_copy(Lint l0, Lint *l1) {
 Lint string_to_lint(char* S) {
   Lint l;
   Lint_constructor(&l, strlen(S), 1);
+  int s_pos = l.length - 1;
   for(int i = 0; i < l.length; i++) {
-    if(i == l.length - 1 && S[l.length - i - 1] == '-'){
+    if(i == l.length - 1 && S[s_pos] == '-'){
       l.sign_pm = MINUS;
       l.length--;
-    }
-    else
-      l.digit[i] = S[l.length - i - 1] - '0';
+      s_pos--;
+    } else {
+      if(S[s_pos] == '.') {
+        l.dp = i;
+        l.length--;
+        s_pos--;
+      }
+      l.digit[i] = S[s_pos--] - '0';
+    }    
   }
   l.digit[l.length] = LINT_END;   /* 番兵 */
   return l;
@@ -63,15 +87,16 @@ Lint string_to_lint(char* S) {
 
 /* Lintを文字列に変換する */
 void lint_to_string(Lint l, char *ans) {
-  if(l.sign_pm == MINUS) {
-    ans[0] = '-';
-  } else {
-    ans[0] = ' ';
-  } 
-  for(int i = 0; i < l.length; i++) {
-    ans[i + 1] = l.digit[l.length - i - 1] + '0';
+  int ans_pos = 0;
+  if(l.sign_pm == MINUS)
+    ans[ans_pos++] = '-';
+  
+  for(int digit_pos = l.length - 1; digit_pos >= 0; digit_pos--) {
+    ans[ans_pos++] = l.digit[digit_pos] + '0';
+    if(l.dp != 0 && digit_pos == l.dp)
+      ans[ans_pos++] = '.';
   }
-  ans[l.length + 1] = '\0';
+  ans[ans_pos] = '\0';
 }
 
 /* Lintを入力する */

@@ -13,11 +13,6 @@ typedef struct {
   int* digit;
   int length;
   pm sign_pm: 1;
+  int dp;
 } Lint;
-
-/* 小数 */
-typedef struct {
-  Lint whole;
-  Lint dec;
-} Ldec;
 #endif
