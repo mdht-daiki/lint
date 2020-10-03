@@ -21,5 +21,9 @@ Lint Lint_partial(Lint a, int n);                                     /* aの上
 Lint Lint_one_digit(int n);                                           /* 一桁の整数を表すLintを返す */
 Lint Lint_pow_10(Lint l, int n);                                      /* 10^n倍する */
 Lint Lint_delete_zero(Lint l);                                        /* 小数点以下の末尾の0を削除する */
-
+Lint constructor_add_sub(Lint a, Lint b);                             /* add、subのコンストラクタ */
+void add_calc(Lint *add, Lint a, Lint b);                             /* addの演算内容 */
+void sub_calc(Lint *sub, Lint a, Lint b);                             /* subの演算内容 */
+Lint constructor_mul(Lint a, Lint b);                                 /* mulのコンストラクタ */
+void mul_calc(Lint *mul, Lint a, Lint b);                             /* mulの演算内容 */
 #endif

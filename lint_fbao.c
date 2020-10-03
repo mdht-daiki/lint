@@ -8,42 +8,14 @@
 /* 足し算 */
 Lint addition(Lint a, Lint b) {
   // add : 繰り上がり・繰り下がり前の結果
-  Lint add;
-
-  // addの桁数設定
-  // 整数部分、小数部分ともに桁が多い方に合わせる
-  int a_whole = a.length - a.dp;
-  int b_whole = b.length - b.dp;
-  int add_whole = a_whole >= b_whole ? a_whole : b_whole;
-  int add_dp = a.dp >= b.dp ? a.dp : b.dp;
-  int length = add_whole + add_dp;
-
-  Lint_constructor(&add, length, 1);                          // freeスタック [add]
-  add.dp = add_dp;
-
+  Lint add = constructor_add_sub(a, b);                        // freeスタック [add]
 
   // a_fixed, b_fixed : 小数点以下の桁数を揃えたa, b 
   Lint a_fixed, b_fixed;
   arrange_decimal(a, b, &a_fixed, &b_fixed);                  // freeスタック [add a_fixed b_fixed]
 
+  add_calc(&add, a_fixed, b_fixed);
 
-  if(a.sign_pm == b.sign_pm) {                                // 符号が同じ場合
-    Lint_abstract_add(&add, a_fixed, b_fixed);                  // 絶対値の足し算
-    add.sign_pm = a.sign_pm;                                    // 符号を揃える
-  } else {                                                    // 符号が違う場合
-    Lint_abstract_sub(&add, a_fixed, b_fixed);                  // 絶対値の引き算
-    if(a.sign_pm == PLUS) {                                     // PLUS + MINUSのとき
-      if(Lint_abstract_compare(a_fixed, b_fixed) == RIGHT)        // MINUSの絶対値の方が大きい
-        add.sign_pm = MINUS;                                        // PLUS + MINUS < 0
-      else                                                        // 絶対値が同じ or PLUSの絶対値の方が大きい
-        add.sign_pm = PLUS;                                         // PLUS + MINUS >= 0
-    } else {                                                    // MINUS + PLUSのとき
-      if(Lint_abstract_compare(a_fixed, b_fixed) == LEFT)         // MINUSの絶対値の方が大きい
-        add.sign_pm = MINUS;
-      else                                                        // 絶対値が同じ or PLUSの絶対値の方が大きい
-        add.sign_pm = PLUS;
-    }
-  }
   // ans : 繰り上がり・繰り下がり後の結果 
   // returnするためfree不要 
   Lint ans = carry_borrow(add);                                 // freeスタック [add a_fixed b_fixed]
@@ -59,34 +31,13 @@ Lint addition(Lint a, Lint b) {
 /* 引き算 */
 Lint subtraction(Lint a, Lint b) {
   // sub : 繰り上がり・繰り下がり前の結果
-  Lint sub;
-
-  // subの桁数設定
-  // 整数部分、小数部分ともに桁が多い方に合わせる
-  int a_whole = a.length - a.dp;
-  int b_whole = b.length - b.dp;
-  int sub_whole = a_whole >= b_whole ? a_whole : b_whole;
-  int sub_dp = a.dp >= b.dp ? a.dp : b.dp;
-  int length = sub_whole + sub_dp;
-
-  Lint_constructor(&sub, length, 1);              // freeスタック [sub]
-  sub.dp = sub_dp;
+  Lint sub = constructor_add_sub(a, b);           // freeスタック [sub]
 
   // a_fixed, b_fixed : 小数点以下の桁数を揃えたa, b 
   Lint a_fixed, b_fixed;
   arrange_decimal(a, b, &a_fixed, &b_fixed);      // freeスタック [sub a_fixed b_fixed]
 
-  if(Lint_compare(a_fixed, b_fixed) == RIGHT)     // a < bのとき a - b < 0
-    sub.sign_pm = MINUS;                          
-  if(a.sign_pm != b.sign_pm)                      // 符号が異なる時絶対値の和をとる
-    Lint_abstract_add(&sub, a_fixed, b_fixed);
-  else                                            // 符号が同じ時絶対値の差をとる
-    Lint_abstract_sub(&sub, a_fixed, b_fixed);
-
-  // printf("subtraction\n");                        // --------------- FOR DEBUG--------------- 
-  // for(int i = 0; i < sub.length; i++)             // --------------- FOR DEBUG--------------- 
-  //   printf("%d ", sub.digit[i]);                  // --------------- FOR DEBUG--------------- 
-  // printf("\n");                                   // --------------- FOR DEBUG--------------- 
+  sub_calc(&sub, a_fixed, b_fixed);
 
   // ans : 繰り上がり・繰り下がり後の結果 
   // returnするためfree不要 
@@ -103,28 +54,10 @@ Lint subtraction(Lint a, Lint b) {
 /* 掛け算（筆算アルゴリズム） */
 Lint multiplication(Lint a, Lint b) {
   // mul : 繰り上がり・繰り下がり前の結果
-  Lint mul;
-  // mulの桁数設定
-  int length = a.length + b.length - 1;
-  Lint_constructor(&mul, length, 1);              // freeスタック [mul]
-  mul.dp = a.dp + b.dp;
-
-  // 符号が異なる時、結果は負
-  if(a.sign_pm != b.sign_pm)
-    mul.sign_pm = MINUS;
+  Lint mul = constructor_mul(a, b);               // freeスタック [mul]
 
   // 計算処理
-  for(int i = 0; i < a.length; i++) {
-    for(int j = 0; j < b.length; j++) {
-      mul.digit[i+j] += a.digit[i] * b.digit[j];
-    }
-  }
-  mul.digit[mul.length] = LINT_END;
-
-  // printf("multiplication\n");                     // --------------- FOR DEBUG--------------- 
-  // for(int i = 0; i < mul.length; i++)             // --------------- FOR DEBUG--------------- 
-  //   printf("%d ", mul.digit[i]);                  // --------------- FOR DEBUG--------------- 
-  // printf("\n");                                   // --------------- FOR DEBUG--------------- 
+  mul_calc(&mul, a, b);
 
   // ans : 繰り上がり・繰り下がり後の結果 
   // returnするためfree不要 

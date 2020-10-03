@@ -325,3 +325,73 @@ Lint Lint_delete_zero(Lint l) {
   }
   return l;
 }
+
+/* add、subの桁数設定 */
+Lint constructor_add_sub(Lint a, Lint b) {
+  // 整数部分、小数部分ともに桁が多い方に合わせる
+  Lint ans;
+  int a_whole = a.length - a.dp;
+  int b_whole = b.length - b.dp;
+  int ans_whole = a_whole >= b_whole ? a_whole : b_whole;
+  int ans_dp = a.dp >= b.dp ? a.dp : b.dp;
+  int length = ans_whole + ans_dp;
+
+  Lint_constructor(&ans, length, 1);                          // freeスタック [add]
+  ans.dp = ans_dp;
+  return ans;
+}
+
+/* addの演算内容 */
+void add_calc(Lint *add, Lint a, Lint b) {
+  if(a.sign_pm == b.sign_pm) {                                // 符号が同じ場合
+    Lint_abstract_add(add, a, b);                               // 絶対値の足し算
+    add->sign_pm = a.sign_pm;                                    // 符号を揃える
+  } else {                                                    // 符号が違う場合
+    Lint_abstract_sub(add, a, b);                               // 絶対値の引き算
+    if(a.sign_pm == PLUS) {                                     // PLUS + MINUSのとき
+      if(Lint_abstract_compare(a, b) == RIGHT)                    // MINUSの絶対値の方が大きい
+        add->sign_pm = MINUS;                                       // PLUS + MINUS < 0
+      else                                                        // 絶対値が同じ or PLUSの絶対値の方が大きい
+        add->sign_pm = PLUS;                                        // PLUS + MINUS >= 0
+    } else {                                                    // MINUS + PLUSのとき
+      if(Lint_abstract_compare(a, b) == LEFT)                     // MINUSの絶対値の方が大きい
+        add->sign_pm = MINUS;
+      else                                                        // 絶対値が同じ or PLUSの絶対値の方が大きい
+        add->sign_pm = PLUS;
+    }
+  }
+}
+
+/* subの演算内容 */
+void sub_calc(Lint *sub, Lint a, Lint b) {
+  if(Lint_compare(a, b) == RIGHT)     // a < bのとき a - b < 0
+    sub->sign_pm = MINUS;                          
+  if(a.sign_pm != b.sign_pm)                      // 符号が異なる時絶対値の和をとる
+    Lint_abstract_add(sub, a, b);
+  else                                            // 符号が同じ時絶対値の差をとる
+    Lint_abstract_sub(sub, a, b);
+}
+
+/* mulのコンストラクタ */
+Lint constructor_mul(Lint a, Lint b) {
+  Lint ans;
+  int length = a.length + b.length - 1;
+  Lint_constructor(&ans, length, 1);              // freeスタック [mul]
+  ans.dp = a.dp + b.dp;
+
+  // 符号が異なる時、結果は負
+  if(a.sign_pm != b.sign_pm)
+  ans.sign_pm = MINUS;
+
+  return ans;
+}
+
+/* mulの演算内容 */
+void mul_calc(Lint *mul, Lint a, Lint b) {
+  for(int i = 0; i < a.length; i++) {
+    for(int j = 0; j < b.length; j++) {
+      mul->digit[i+j] += a.digit[i] * b.digit[j];
+    }
+  }
+  mul->digit[mul->length] = LINT_END;
+}
