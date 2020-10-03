@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "lint_func.h"
+#include "lint_fbao.h"
 #include "lint_subfunc.h"
 
 /* 足し算 */

@@ -1,3 +1,5 @@
+#ifndef LINT_SUBFUNC_H
+#define LINT_SUBFUNC_H
 #include "lint_struct.h"
 
 void Lint_constructor(Lint *l_this, int length, int play);            /* Lintのコンストラクタ */
@@ -18,3 +20,6 @@ void arrange_decimal(Lint a, Lint b, Lint *a_fixed, Lint *b_fixed);   /* 小数�
 Lint Lint_partial(Lint a, int n);                                     /* aの上位n桁を切り取る */
 Lint Lint_one_digit(int n);                                           /* 一桁の整数を表すLintを返す */
 Lint Lint_pow_10(Lint l, int n);                                      /* 10^n倍する */
+Lint Lint_delete_zero(Lint l);                                        /* 小数点以下の末尾の0を削除する */
+
+#endif

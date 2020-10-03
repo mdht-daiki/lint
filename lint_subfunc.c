@@ -178,7 +178,10 @@ Lint carry_borrow(Lint l) {
     ans.digit[--ans.length] = LINT_END;
     ans_whole--;
   }
-  return ans;
+
+  Lint ans_partial = Lint_delete_zero(ans);
+  free(ans.digit);
+  return ans_partial;
 }
 
 /* 比較結果をひっくり返す */
@@ -305,4 +308,20 @@ Lint Lint_pow_10(Lint l, int n) {
   Lint ans = Lint_zero_fill(l, n);
   ans.dp = l.dp;
   return ans;
+}
+
+/* 小数点以下の末尾の0を削除する */
+Lint Lint_delete_zero(Lint l) {
+  int zero_after_dp = 0;
+  for(int i = 0; i < l.dp; i++) {
+    if(l.digit[i] == 0)
+      zero_after_dp++;
+    else
+      break;
+  }
+  if(zero_after_dp != 0) {
+    Lint l_partial = Lint_partial(l, l.length - zero_after_dp);
+    return l_partial;
+  }
+  return l;
 }

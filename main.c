@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "lint_func.h"
+#include "lint_fbao.h"
 #include "lint_subfunc.h"
 
 int main(void) {
@@ -29,17 +29,17 @@ int main(void) {
     printf("lint[0] - lint[1] = %s\n", buf);
     free(sub.digit);
 
-    // 掛け算
-    Lint mul = multiplication(l_list[0], l_list[1]);
-    lint_to_string(mul, buf);
-    printf("lint[0] * lint[1] = %s\n", buf);
-    free(mul.digit);
+    // // 掛け算
+    // Lint mul = multiplication(l_list[0], l_list[1]);
+    // lint_to_string(mul, buf);
+    // printf("lint[0] * lint[1] = %s\n", buf);
+    // free(mul.digit);
 
-    // 割り算
-    Lint div = division(l_list[0], l_list[1]);
-    lint_to_string(div, buf);
-    printf("lint[0] / lint[1] = %s\n", buf);
-    free(div.digit);
+    // // 割り算
+    // Lint div = division(l_list[0], l_list[1]);
+    // lint_to_string(div, buf);
+    // printf("lint[0] / lint[1] = %s\n", buf);
+    // free(div.digit);
   }
 
   for(i = 0; i < length; i++)
