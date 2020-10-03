@@ -17,23 +17,28 @@ int main(void) {
   }
 
   if(length == 2) {
+    // 足し算
     Lint add = addition(l_list[0], l_list[1]);
     lint_to_string(add, buf);
     printf("lint[0] + lint[1] = %s\n", buf);
-    printf("add.dp = %d\n", add.dp);
     free(add.digit);
+
+    // 引き算
     Lint sub = subtraction(l_list[0], l_list[1]);
     lint_to_string(sub, buf);
     printf("lint[0] - lint[1] = %s\n", buf);
-    printf("sub.dp = %d\n", sub.dp);
     free(sub.digit);
+
+    // 掛け算
     Lint mul = multiplication(l_list[0], l_list[1]);
     lint_to_string(mul, buf);
     printf("lint[0] * lint[1] = %s\n", buf);
     free(mul.digit);
+
+    // 割り算
     Lint div = division(l_list[0], l_list[1]);
     lint_to_string(div, buf);
-    printf("lint[0] * lint[1] = %s\n", buf);
+    printf("lint[0] / lint[1] = %s\n", buf);
     free(div.digit);
   }
 

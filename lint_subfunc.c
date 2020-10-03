@@ -8,6 +8,10 @@
 void Lint_constructor(Lint *l_this, int length, int play) {
   l_this->length = length;
   l_this->digit = (int *)malloc(sizeof(int) * (length + play));
+  if(l_this->digit == NULL) {
+    printf("error: cannot alloc\n");
+    exit(EXIT_FAILURE);
+  }
   for(int i = 0; i < length; i++) {
     l_this->digit[i] = 0;
   }
@@ -115,6 +119,10 @@ Lint *input_lint(int *n) {
   int length = *n;
 
   l_list = malloc(sizeof(Lint) * length);
+  if(l_list == NULL) {
+    printf("error: cannot alloc\n");
+    exit(EXIT_FAILURE);
+  }
   for(int i = 0; i < length; i++) {
     fgets(buf, sizeof(buf), stdin);
     trim_nl(buf);
@@ -142,10 +150,14 @@ Lint carry_borrow(Lint l) {
 
     /* 繰り下がり */
     if(ans.digit[i] < 0) {
-      int n = (ans.digit[i] - 1) / 10 + 1;
+      int n = (-ans.digit[i] - 1) / 10 + 1;
       ans.digit[i] += n * 10;
       ans.digit[i + 1] -= n;
     }
+    // printf("carry_borrow[%d]\n", i);                      // --------------- FOR DEBUG--------------- 
+    // for(int j = 0; j < ans.length; j++)                   // --------------- FOR DEBUG--------------- 
+    //   printf("%d ", ans.digit[j]);                        // --------------- FOR DEBUG--------------- 
+    // printf("\n");                                         // --------------- FOR DEBUG--------------- 
   }
   ans.digit[ans.length] = LINT_END;
 
@@ -155,11 +167,16 @@ Lint carry_borrow(Lint l) {
     ans.digit[ans.length - 1] -= n * 10;
     ans.digit[ans.length++] = n;
     ans.digit[ans.length] = LINT_END;
+    // printf("桁数を増やす\n");                      // --------------- FOR DEBUG--------------- 
+    // for(int j = 0; j < ans.length; j++)                   // --------------- FOR DEBUG--------------- 
+    //   printf("%d ", ans.digit[j]);                        // --------------- FOR DEBUG--------------- 
+    // printf("\n");                                         // --------------- FOR DEBUG--------------- 
   }
 
   /* 最大桁が0かつ桁数が1桁でない時、最大桁の0を消す */
   while(ans_whole >= 2 && ans.digit[ans.length - 1] == 0) {
     ans.digit[--ans.length] = LINT_END;
+    ans_whole--;
   }
   return ans;
 }
@@ -224,7 +241,7 @@ void Lint_abstract_sub(Lint *ans, Lint a, Lint b) {
   ans->digit[ans->length] = LINT_END;
 }
 
-/* 10^n倍する */
+/* 小数点以下に0をn個加える */
 Lint Lint_zero_fill(Lint l, int n) {
   Lint ans;
   Lint_constructor(&ans, l.length + n, 1);
@@ -257,6 +274,7 @@ void arrange_decimal(Lint a, Lint b, Lint *a_fixed, Lint *b_fixed) {
   }
 }
 
+/* aの上位n桁を切り取る */
 Lint Lint_partial(Lint a, int n) {
   Lint a_partial;
   Lint_constructor(&a_partial, n, 1);
@@ -273,6 +291,7 @@ Lint Lint_partial(Lint a, int n) {
   return a_partial;
 }
 
+/* 一桁の整数を表すLintを返す */
 Lint Lint_one_digit(int n) {
   Lint one;
   Lint_constructor(&one, 1, 1);
