@@ -151,3 +151,115 @@ if(cannot_flag != 0) {
   return 0;
 }
 return 1;
+
+小数の割り算
+最大表示桁数をMAX_LENGTHとして、
+ans.length = MAX_LENGTHとなるようにする。
+
+1.bが整数になるように小数点を動かし、aについても同じ数だけ小数点を動かす
+    小数点を動かした後のa, bをa_10n, b_10nとする。
+    arrange_decimal(a, b, &a_10n, &b_10n);
+    a_10n.dp -= b_10n.dp;
+    b_10n.dp = 0;
+    
+2.最初の計算の際におろしてくるremainの長さを決める。
+    if(a_10nの整数部分の桁数がb_10nの桁数より小さい) (1)
+      remain = a_10nの整数部分
+    else {
+      if(a_10nの先頭(b_10nの桁数)桁がb_10nより大きい) (2)
+        remain = a_10nの先頭(b_10nの桁数)桁
+      else                                            (3)
+        remain = a_10nの先頭(b_10nの桁数+1)桁
+    }
+
+3.(1)-(3)それぞれにおいてansの整数部分の桁数が求まるので、小数点を適切な部分に打ってans.length = MAX_LENGTHとなるようにする。
+    ansの整数部分をans_wholeとする。
+    (1)のときans < 1となるのでans_wholeは1桁(0.xxxxxという形になる)
+    (2)のとき
+               1234567
+      bbbb) aaaaaaaaaa.aaaaa  b.length = 4, aの整数部分は10桁
+      ans_wholeは(aの整数部分の桁数 - b.length + 1)桁
+    (3)のとき
+                123456
+      bbbb) aaaaaaaaaa.aaaa
+      ans_wholeは(aの整数部分の桁数 - b.length)桁
+
+    xxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxx
+    | ans.whole    |                       |
+    |             MAX_LENGTH               |
+    ans.dp = MAX_LENGTH - ans.whole;
+
+4.設定したパラメータでansを生成する
+
+5.remainを幾つ生成するか決める。
+    循環小数表示のため、割った数のあまりを蓄積しておく必要がある。
+    remainの生成個数 = MAX_LENGTH
+
+6. 2, 5で設定したパラメータでremainを生成する
+
+7.演算
+    i = MAX_LENGTH - 1 から i = 0までデクリメントしながら計算していく。
+    a_pos も a_pos >= 0である限り、a_pos = a.length - 最初のremainの長さ からデクリメントする。
+    a_pos = 0となった際にremainが0になった時、割り切れたので計算を打ち切り、末尾の0を削除して返す。
+    a_pos < 0となった時、aの全ての桁を使い切ったので、以降は0を下ろす = ゼロを一つ増やすまでの処理で終わる。
+    このタイミングからremainの記録、検索を始める。
+
+    int a_pos = a.length - remain_length;
+    int record_start_i;
+    int loop_start;
+    int loop_end;
+
+    for(int i = MAX_LENGTH - 1; i >= 0; i--)
+    // ansのi桁目の計算
+
+    // remainがb*9より大きい時9を代入する
+    ans.digit[i] = 9;
+    
+    // b*jがremainより大きくなったら、その直前のj-1を代入する
+    for(int j = 1; j <= 9; j++) {
+      Lint x = multiplication(b, l_list[j]);
+      if(Lint_compare(x, remain[i + 1]) == LEFT) {
+        ans.digit[i] = j - 1;
+        break;
+      }
+
+    // x_result : ansのi桁目 * b
+    Lint x_result = multiplication(b, l_list[ans.digit[i]]);
+
+    if(i >= 1) {
+      // remainからx_resultを引く
+      Lint x1 = subtraction(remain[i + 1], x_result);
+      if(a_pos == 0){
+        if(Lint_compare(s1, l_list[0]) == EQUAL) {
+        // 末尾の0を削除して返す
+        } else {
+          record_start_i = i;
+        }
+      }
+      if(a_pos > 0) {
+        // 10倍してゼロを一つ増やす
+        Lint x2 = Lint_pow_10(x1, 1);
+
+        // aを一桁下ろす
+        remain[i] = addition(x2, l_list[a.digit[a_pos-1]]]);
+        a_pos--;
+      } else {
+        remain[i] = Lint_pow_10(x1, 1);
+        for(int j = record_start_i; j <= i; j++) {
+          if(remain[i] == remain[j]) {
+            loop_start = j;
+            loop_end = i;
+            // 計算を打ち切り、循環小数表示の関数に飛ぶ。
+          }
+        }
+      }
+    } else {
+      // 余りになる
+      remain[i] = subtraction(remain[i + 1], x_result);
+    }
+
+            0.
+      bbbb) a.aaaaaaaaa
+               1
+      bbbb) aaaaa.aaaaa
+      a - remain-1

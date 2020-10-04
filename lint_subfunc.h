@@ -2,7 +2,10 @@
 #define LINT_SUBFUNC_H
 #include "lint_struct.h"
 
+extern char DEBUG_BUF[MAX_LENGTH];
+
 void Lint_constructor(Lint *l_this, int length, int play);            /* Lintのコンストラクタ */
+void Lint_free(Lint a);
 void trim_nl(char *s);                                                /* 文字列から改行を削除する */
 int check_string(char* S);                                            /* 文字列がLintに変換できるものか確認する */
 void lint_copy(Lint l0, Lint *l1);                                    /* l0をl1にコピーする */
@@ -26,4 +29,8 @@ void add_calc(Lint *add, Lint a, Lint b);                             /* addの�
 void sub_calc(Lint *sub, Lint a, Lint b);                             /* subの演算内容 */
 Lint constructor_mul(Lint a, Lint b);                                 /* mulのコンストラクタ */
 void mul_calc(Lint *mul, Lint a, Lint b);                             /* mulの演算内容 */
+void dp_move(Lint a, Lint b, Lint *a_10n, Lint *b_10n);               /* bが整数になるように小数点を動かす */
+int set_remain_length(Lint a, Lint b);                                /* remainの長さを設定する */
+int set_div_dp(Lint a, Lint b);                                       
+void div_calc(Lint *ans, Lint a, Lint b, int a_pos_init, Lint *remain);
 #endif

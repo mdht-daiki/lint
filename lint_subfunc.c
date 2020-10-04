@@ -2,21 +2,42 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "lint_fbao.h"
 #include "lint_subfunc.h"
+#define DEBUG_PRINTF printf
+
+#define FREE(ptr) { \
+    free(ptr); \
+    ptr = NULL; \
+} \
+
+char DEBUG_BUF[MAX_LENGTH];
 
 /* Lintのコンストラクタ */
 void Lint_constructor(Lint *l_this, int length, int play) {
+  // DEBUG_PRINTF("---lint_constructor---\n");
   l_this->length = length;
   l_this->digit = (int *)malloc(sizeof(int) * (length + play));
   if(l_this->digit == NULL) {
     printf("error: cannot alloc\n");
     exit(EXIT_FAILURE);
   }
+  // DEBUG_PRINTF("malloc: %p\n", l_this->digit);
   for(int i = 0; i < length; i++) {
     l_this->digit[i] = 0;
   }
+  if(play > 0)
+    l_this->digit[length] = LINT_END;
   l_this->sign_pm = PLUS;
   l_this->dp = 0;
+  l_this->loop_start = -1;
+  l_this->loop_end = -1;
+}
+
+/*  */
+void Lint_free(Lint a) {
+  // DEBUG_PRINTF("free  : %p\n", a.digit);
+  FREE(a.digit);
 }
 
 /* 文字列から改行を削除する */
@@ -66,6 +87,8 @@ void lint_copy(Lint l0, Lint *l1) {
   for(int i = 0; l0.digit[i] != LINT_END; i++) {
     l1->digit[i] = l0.digit[i];
   }
+  l1->loop_start = l0.loop_start;
+  l1->loop_end = l0.loop_end;
 }
 
 /* 文字列をLintに変換する */
@@ -102,6 +125,15 @@ void lint_to_string(Lint l, char *ans) {
     ans[ans_pos++] = '-';
   
   for(int digit_pos = l.length - 1; digit_pos >= 0; digit_pos--) {
+    // DEBUG_PRINTF("digit_pos = %d\n", digit_pos);
+    // DEBUG_PRINTF("l.loop_start = %d\n", l.loop_start);
+    // DEBUG_PRINTF("l.loop_end = %d\n", l.loop_end);
+    if(digit_pos == l.loop_start)
+      ans[ans_pos++] = '(';
+    if(digit_pos == l.loop_end){
+      ans[ans_pos++] = ')';
+      break;
+    }
     ans[ans_pos++] = l.digit[digit_pos] + '0';
     if(l.dp != 0 && digit_pos == l.dp)
       ans[ans_pos++] = '.';
@@ -118,7 +150,7 @@ Lint *input_lint(int *n) {
   sscanf(buf, "%d", n);
   int length = *n;
 
-  l_list = malloc(sizeof(Lint) * length);
+  l_list = (Lint *)malloc(sizeof(Lint) * length);
   if(l_list == NULL) {
     printf("error: cannot alloc\n");
     exit(EXIT_FAILURE);
@@ -135,6 +167,7 @@ Lint *input_lint(int *n) {
 
 /* 繰り上がり・繰り下がり処理 */
 Lint carry_borrow(Lint l) {
+  // DEBUG_PRINTF("---carry_borrow---\n");
   Lint ans;
   Lint_constructor(&ans, l.length, LINT_CB_BUF);
   lint_copy(l, &ans);
@@ -154,10 +187,6 @@ Lint carry_borrow(Lint l) {
       ans.digit[i] += n * 10;
       ans.digit[i + 1] -= n;
     }
-    // printf("carry_borrow[%d]\n", i);                      // --------------- FOR DEBUG--------------- 
-    // for(int j = 0; j < ans.length; j++)                   // --------------- FOR DEBUG--------------- 
-    //   printf("%d ", ans.digit[j]);                        // --------------- FOR DEBUG--------------- 
-    // printf("\n");                                         // --------------- FOR DEBUG--------------- 
   }
   ans.digit[ans.length] = LINT_END;
 
@@ -167,10 +196,6 @@ Lint carry_borrow(Lint l) {
     ans.digit[ans.length - 1] -= n * 10;
     ans.digit[ans.length++] = n;
     ans.digit[ans.length] = LINT_END;
-    // printf("桁数を増やす\n");                      // --------------- FOR DEBUG--------------- 
-    // for(int j = 0; j < ans.length; j++)                   // --------------- FOR DEBUG--------------- 
-    //   printf("%d ", ans.digit[j]);                        // --------------- FOR DEBUG--------------- 
-    // printf("\n");                                         // --------------- FOR DEBUG--------------- 
   }
 
   /* 最大桁が0かつ桁数が1桁でない時、最大桁の0を消す */
@@ -180,7 +205,8 @@ Lint carry_borrow(Lint l) {
   }
 
   Lint ans_partial = Lint_delete_zero(ans);
-  free(ans.digit);
+  Lint_free(ans);
+  // DEBUG_PRINTF("---carry_borrow--- end\n");
   return ans_partial;
 }
 
@@ -200,8 +226,14 @@ compare Lint_abstract_compare(Lint a, Lint b) {
 
   int length = a.length >= b.length ? a.length : b.length;
   for(int i = length - 1; i >= 0; i--) {
-    if(a.digit[i] > b.digit[i]) return LEFT;
-    if(a.digit[i] < b.digit[i]) return RIGHT;
+    if(a.digit[i] > b.digit[i]) {
+      // DEBUG_PRINTF("LEFT\n");
+      return LEFT;
+    }
+    if(a.digit[i] < b.digit[i]) {
+      // DEBUG_PRINTF("RIGHT\n");
+      return RIGHT;
+    }
   }
   return EQUAL;
 }
@@ -246,6 +278,7 @@ void Lint_abstract_sub(Lint *ans, Lint a, Lint b) {
 
 /* 小数点以下に0をn個加える */
 Lint Lint_zero_fill(Lint l, int n) {
+  // DEBUG_PRINTF("---Lint_zero_fill---");
   Lint ans;
   Lint_constructor(&ans, l.length + n, 1);
   ans.dp = l.dp + n;
@@ -261,6 +294,7 @@ Lint Lint_zero_fill(Lint l, int n) {
 
 /* 小数点以下の桁数を揃える */
 void arrange_decimal(Lint a, Lint b, Lint *a_fixed, Lint *b_fixed) {
+  // DEBUG_PRINTF("---arrange_decimal---\n");
     if(a.dp > b.dp) {
     Lint_constructor(a_fixed, a.length, 0);
     lint_copy(a, a_fixed);
@@ -275,6 +309,7 @@ void arrange_decimal(Lint a, Lint b, Lint *a_fixed, Lint *b_fixed) {
     Lint_constructor(b_fixed, a.length, 0);
     lint_copy(b, b_fixed);
   }
+  // DEBUG_PRINTF("---arrange_decimal--- end\n");
 }
 
 /* aの上位n桁を切り取る */
@@ -312,6 +347,7 @@ Lint Lint_pow_10(Lint l, int n) {
 
 /* 小数点以下の末尾の0を削除する */
 Lint Lint_delete_zero(Lint l) {
+  Lint l_partial;
   int zero_after_dp = 0;
   for(int i = 0; i < l.dp; i++) {
     if(l.digit[i] == 0)
@@ -320,14 +356,21 @@ Lint Lint_delete_zero(Lint l) {
       break;
   }
   if(zero_after_dp != 0) {
-    Lint l_partial = Lint_partial(l, l.length - zero_after_dp);
+    l_partial = Lint_partial(l, l.length - zero_after_dp);
+    if(l.loop_start > 0)
+      l_partial.loop_start = l.loop_start - zero_after_dp;
+    if(l.loop_end > 0)
+      l_partial.loop_end = l.loop_end - zero_after_dp;
     return l_partial;
   }
-  return l;
+  Lint_constructor(&l_partial, l.length, 1);
+  lint_copy(l, &l_partial);
+  return l_partial;
 }
 
 /* add、subの桁数設定 */
 Lint constructor_add_sub(Lint a, Lint b) {
+  // DEBUG_PRINTF("---constructor_add_sub---\n");
   // 整数部分、小数部分ともに桁が多い方に合わせる
   Lint ans;
   int a_whole = a.length - a.dp;
@@ -374,6 +417,7 @@ void sub_calc(Lint *sub, Lint a, Lint b) {
 
 /* mulのコンストラクタ */
 Lint constructor_mul(Lint a, Lint b) {
+  // DEBUG_PRINTF("---constructor_mul---\n");
   Lint ans;
   int length = a.length + b.length - 1;
   Lint_constructor(&ans, length, 1);              // freeスタック [mul]
@@ -382,7 +426,7 @@ Lint constructor_mul(Lint a, Lint b) {
   // 符号が異なる時、結果は負
   if(a.sign_pm != b.sign_pm)
   ans.sign_pm = MINUS;
-
+  // DEBUG_PRINTF("---constructor_mul--- end\n");
   return ans;
 }
 
@@ -395,3 +439,156 @@ void mul_calc(Lint *mul, Lint a, Lint b) {
   }
   mul->digit[mul->length] = LINT_END;
 }
+
+/* bが整数になるように小数点を動かす */
+void dp_move(Lint a, Lint b, Lint *a_10n, Lint *b_10n) {
+  // DEBUG_PRINTF("---dp_move---\n");
+  arrange_decimal(a, b, a_10n, b_10n);
+  a_10n->dp -= b_10n->dp;
+  b_10n->dp = 0;
+  // DEBUG_PRINTF("---dp_move--- end\n");
+}
+
+/* remainの長さを設定する */
+int set_remain_length(Lint a, Lint b) {
+  // DEBUG_PRINTF("---set_remain_length---\n");
+  Lint a_partial = Lint_partial(a, b.length);
+  int a_whole = a.length - a.dp;
+  int remain_length;
+
+  if(a_whole <= b.length) 
+    remain_length = a_whole;
+  else {
+    if(Lint_compare(a_partial, b) == RIGHT)
+      remain_length = b.length + 1;
+    else 
+      remain_length = b.length;
+  }
+  Lint_free(a_partial);
+  // DEBUG_PRINTF("---set_remain_length--- end\n");
+  return remain_length;
+}
+
+/* remainの長さを設定する */
+int set_div_dp(Lint a, Lint b) {
+  // DEBUG_PRINTF("---set_div_dp---\n");
+  Lint a_partial = Lint_partial(a, b.length);
+  int a_whole = a.length - a.dp;
+  int div_whole;
+
+  if(a_whole < b.length) 
+    div_whole = 1;
+  else {
+    if(Lint_compare(a_partial, b) == RIGHT)
+      div_whole = a_whole - b.length;
+    else 
+      div_whole = a_whole - b.length + 1;
+  }
+  Lint_free(a_partial);
+  // DEBUG_PRINTF("---set_div_dp--- end\n");
+  return MAX_LENGTH - div_whole;
+}
+
+void div_calc(Lint *ans, Lint a, Lint b, int a_pos_init, Lint *remain) {
+  // DEBUG_PRINTF("---div_calc---\n");
+  int record_start_i = 0;
+  Lint l_list[10];
+  int a_pos = a_pos_init;
+  int finish_flag = 0;
+
+  for(int i = 0; i < 10; i++) {
+    // DEBUG_PRINTF("l_list[%d]\n", i);
+    l_list[i] = Lint_one_digit(i);
+  }
+
+  
+
+  for(int i = MAX_LENGTH - 1; i >= 0; i--) {
+    ans->digit[i] = 9;
+    for(int j = 1; j <= 9; j++) {
+      Lint x = multiplication(b, l_list[j]);
+      // lint_to_string(x, DEBUG_BUF);
+      // DEBUG_PRINTF("x = %s\n", DEBUG_BUF);
+      // lint_to_string(remain[i + 1], DEBUG_BUF);
+      // DEBUG_PRINTF("remain[%d] = %s\n", i + 1, DEBUG_BUF);
+      if(Lint_compare(x, remain[i + 1]) == LEFT) {
+        ans->digit[i] = j - 1;
+        // DEBUG_PRINTF("b * %d > remain[%d]\nans->digit[%d] = %d\n", j, i + 1, i, ans->digit[i]);
+        Lint_free(x);
+        break;
+      }
+      Lint_free(x);
+    }
+
+    Lint x_result = multiplication(b, l_list[ans->digit[i]]);
+    // lint_to_string(x_result, DEBUG_BUF);
+    // DEBUG_PRINTF("x_result = %s\n", DEBUG_BUF);
+
+    if(i >= 1) {
+      // DEBUG_PRINTF("i = %d >= 1\n", i);
+      Lint x1 = subtraction(remain[i + 1], x_result);
+      // lint_to_string(x1, DEBUG_BUF);
+      // DEBUG_PRINTF("x1 = %s\n", DEBUG_BUF);
+      // DEBUG_PRINTF("a_pos = %d\n", a_pos);
+      if(a_pos == 0) {
+        if(Lint_compare(x1, l_list[0]) == EQUAL) {
+          Lint_free(x1);
+          Lint_free(x_result);
+          for(int j = 0; j < 10; j++) 
+            Lint_free(l_list[j]);
+          break;
+        }
+      }
+
+      if(record_start_i == 0) {
+        if(a_pos <= 0 && i <= ans->dp) {
+          record_start_i = i - 1;
+        }
+        // DEBUG_PRINTF("record_start_i = %d\n", record_start_i);
+      }
+
+
+      if(a_pos > 0) {
+        Lint x2 = Lint_pow_10(x1, 1);
+        remain[i] = addition(x2, l_list[a.digit[a_pos - 1]]);
+        a_pos--;
+        Lint_free(x2);
+        Lint_free(x1);
+        Lint_free(x_result);
+      } else {
+        remain[i] = Lint_pow_10(x1, 1);
+        // lint_to_string(remain[i], DEBUG_BUF);
+        // DEBUG_PRINTF("remain[%d] = %s\n", i, DEBUG_BUF);
+        // DEBUG_PRINTF("finish_flag = %d\n", finish_flag);
+        Lint_free(x1);
+        Lint_free(x_result);
+        // DEBUG_PRINTF("record_start_i = %d\n", record_start_i);
+        for(int j = record_start_i; j > i; j--) {
+          // DEBUG_PRINTF("j = %d\n", j);
+          // DEBUG_PRINTF("finish_flag = %d\n", finish_flag);
+          if(Lint_compare(remain[i], remain[j]) == EQUAL) {
+            ans->loop_start = j;
+            ans->loop_end = i;
+            finish_flag++;
+            // DEBUG_PRINTF("same remain\n");
+            // DEBUG_PRINTF("ans->loop_start = %d\n", ans->loop_start);
+            // DEBUG_PRINTF("ans->loop_end = %d\n", ans->loop_end);
+          }
+        }
+        // DEBUG_PRINTF("finish_flag = %d\n", finish_flag);
+        if(finish_flag != 0) {
+          // DEBUG_PRINTF("finished\n");
+          for(int j = 0; j < 10; j++) 
+            Lint_free(l_list[j]);
+          break;
+        }
+      }
+    } else {
+      remain[i] = subtraction(remain[i + 1], x_result);
+      Lint_free(x_result);
+      for(int j = 0; j < 10; j++) 
+        Lint_free(l_list[j]);
+    }
+  }
+}
+

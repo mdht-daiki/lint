@@ -14,5 +14,7 @@ typedef struct {
   int length;
   pm sign_pm: 1;
   int dp;
+  int loop_start;
+  int loop_end;
 } Lint;
 #endif

@@ -4,12 +4,19 @@
 #include <string.h>
 #include "lint_fbao.h"
 #include "lint_subfunc.h"
+#define DEBUG_PRINTF printf
+
+#define FREE(ptr) { \
+    free(ptr); \
+    ptr = NULL; \
+} \
+
+char DEBUG_BUF[MAX_LENGTH];
 
 /* 足し算 */
 Lint addition(Lint a, Lint b) {
   // add : 繰り上がり・繰り下がり前の結果
   Lint add = constructor_add_sub(a, b);                        // freeスタック [add]
-
   // a_fixed, b_fixed : 小数点以下の桁数を揃えたa, b 
   Lint a_fixed, b_fixed;
   arrange_decimal(a, b, &a_fixed, &b_fixed);                  // freeスタック [add a_fixed b_fixed]
@@ -20,16 +27,18 @@ Lint addition(Lint a, Lint b) {
   // returnするためfree不要 
   Lint ans = carry_borrow(add);                                 // freeスタック [add a_fixed b_fixed]
 
+  
   // メモリ開放
-  free(b_fixed.digit);                                          // freeスタック [add a_fixed]
-  free(a_fixed.digit);                                          // freeスタック [add]
-  free(add.digit);                                              // freeスタック []
+  Lint_free(b_fixed);                                          // freeスタック [add a_fixed]
+  Lint_free(a_fixed);                                          // freeスタック [add]
+  Lint_free(add);                                              // freeスタック []
 
   return ans;
 }
 
 /* 引き算 */
 Lint subtraction(Lint a, Lint b) {
+  // DEBUG_PRINTF("---subtraction---\n");
   // sub : 繰り上がり・繰り下がり前の結果
   Lint sub = constructor_add_sub(a, b);           // freeスタック [sub]
 
@@ -44,16 +53,18 @@ Lint subtraction(Lint a, Lint b) {
   Lint ans = carry_borrow(sub);                   // freeスタック [sub a_fixed b_fixed]
 
   // メモリ開放
-  free(b_fixed.digit);                            // freeスタック [sub a_fixed]
-  free(a_fixed.digit);                            // freeスタック [sub]
-  free(sub.digit);                                // freeスタック []
-  
+  Lint_free(b_fixed);                            // freeスタック [sub a_fixed]
+  Lint_free(a_fixed);                            // freeスタック [sub]
+  Lint_free(sub);                                // freeスタック []
+  // DEBUG_PRINTF("---subtraction--- end\n");
   return ans;
 }
 
 /* 掛け算（筆算アルゴリズム） */
 Lint multiplication(Lint a, Lint b) {
+  // DEBUG_PRINTF("---multiplication---\n");
   // mul : 繰り上がり・繰り下がり前の結果
+  // DEBUG_PRINTF("mul\n");
   Lint mul = constructor_mul(a, b);               // freeスタック [mul]
 
   // 計算処理
@@ -61,118 +72,51 @@ Lint multiplication(Lint a, Lint b) {
 
   // ans : 繰り上がり・繰り下がり後の結果 
   // returnするためfree不要 
+  // DEBUG_PRINTF("ans\n");
   Lint ans = carry_borrow(mul);                   // freeスタック [mul]
 
   // メモリ開放
-  free(mul.digit);                                // freeスタック []
-  
+  Lint_free(mul);                                // freeスタック []
+  // DEBUG_PRINTF("---multiplication--- end\n");
   return ans;
 }
 
 /* 割り算（整数用） */
 Lint division(Lint a, Lint b) {
-  // char buf1[MAX_LENGTH], buf2[MAX_LENGTH];                     // --------------- FOR DEBUG--------------- 
-
-  // ans : 計算結果
-  // returnするためfree不要
-  Lint ans;
-
-  // 割る数の方が桁数が多い場合0を返す
-  if(a.length < b.length)
-    return Lint_one_digit(0);
+  Lint a_10n, b_10n, ans;
+  int remain_length;
   
-  // ansの桁数設定
-  // aの上位b.length桁がbより大きい場合最上位にもう一桁追加できる
-  int length = a.length - b.length;
-  Lint a_partial = Lint_partial(a, b.length);                     // freeスタック [a_partial]
-  if(Lint_compare(a_partial, b) == LEFT || Lint_compare(a_partial, b) == EQUAL)
-    length++;
-  free(a_partial.digit);                                          // freeスタック []
-  
-  // ansが0桁のとき0を返す
-  if(length == 0)
-    return Lint_one_digit(0);
-
-  // l_list[i] : 整数iをLint型で表現したもの
-  // 計算の際に必要となるためここで初期化
-  Lint l_list[10];
-  for(int i = 0; i < 10; i++) {
-    l_list[i] = Lint_one_digit(i);
-  }                                                               // freeスタック [(l_list[0] - l_list[9])]
-
-  // remain[i] : i桁目を計算した後、次の段に降りてくる値
-  // remain[length] : 計算スタート時の計算範囲
-  // remain[0] : 割り算のあまり
-  Lint *remain = (Lint *)malloc(sizeof(Lint) * (length + 1));     // freeスタック [(l_list[0] - l_list[9]) remain]
+  // DEBUG_PRINTF("a_10n, b_10n\n");
+  dp_move(a, b, &a_10n, &b_10n);
+  remain_length = set_remain_length(a_10n, b_10n);
+  // DEBUG_PRINTF("ans\n");
+  Lint_constructor(&ans, MAX_LENGTH, 1);
+  ans.dp = set_div_dp(a_10n, b_10n);
+  // DEBUG_PRINTF("remain\n");
+  Lint *remain = (Lint *)malloc(sizeof(Lint) * (MAX_LENGTH));
   if(remain == NULL) {
-    printf("error: cannot alloc remain\n");
+    printf("error:cannot alloc remain\n");
     exit(EXIT_FAILURE);
   }
-  remain[length] = Lint_partial(a, a.length - length + 1);        // freeスタック [(l_list[0] - l_list[9]) remain remain[length]]
-  
+  // DEBUG_PRINTF("malloc: %p\n", remain);
+  remain[MAX_LENGTH] = Lint_partial(a_10n, remain_length);
 
-  // returnするためfree不要
-  Lint_constructor(&ans, length, 1);                              // freeスタック [(l_list[0] - l_list[9]) remain remain[length]]
+  int a_pos = a_10n.length - remain_length;
+  int record_start_i;
 
-  // 符号が異なる時、結果は負
-  if(a.sign_pm != b.sign_pm)
-    ans.sign_pm = MINUS;
-  // 計算処理
-  // ansの最上位からans[0]まで降りていく
-  for(int i = length - 1; i >= 0; i--) {                      // for1
-    //                                                               freeスタック [(l_list[0] - l_list[9]) remain remain[i + 1]]
-
-    // ansのi桁目の計算
-
-    // remainがb*9より大きい時9を代入する
-    ans.digit[i] = 9;
-    
-    // b*jがremainより大きくなったら、その直前のj-1を代入する
-    for(int j = 1; j <= 9; j++) {                               // for2
-      // lint_to_string(b, buf1);                                    // --------------- FOR DEBUG--------------- 
-      // lint_to_string(l_list[j], buf2);                            // --------------- FOR DEBUG--------------- 
-      // printf("b * l_list[%d]\n", j);                              // --------------- FOR DEBUG--------------- 
-      // printf("%s * %s\n", buf1, buf2);                            // --------------- FOR DEBUG--------------- 
-      Lint x = multiplication(b, l_list[j]);                      // freeスタック [(l_list[0] - l_list[9]) remain remain[i + 1] x]
-
-
-      
-      if(Lint_compare(x, remain[i + 1]) == LEFT) {
-        ans.digit[i] = j - 1;
-        // printf("ans.digit[%d] = %d\n", i, ans.digit[i]);          // --------------- FOR DEBUG--------------- 
-        break;
-      }
-      free(x.digit);                                              // freeスタック [(l_list[0] - l_list[9]) remain remain[i + 1]]
-    }                                                           // endfor2
-
-    // x_result : ansのi桁目 * b
-    Lint x_result = multiplication(b, l_list[ans.digit[i]]);      // freeスタック [(l_list[0] - l_list[9]) remain remain[i + 1] x_result]
-    // lint_to_string(x_result, buf1);                               // --------------- FOR DEBUG--------------- 
-    // printf("x_result = %s\n", buf1);                              // --------------- FOR DEBUG--------------- 
-
-    if(i >= 1) {                                                // if
-      // remainからx_resultを引く
-      Lint x1 = subtraction(remain[i + 1], x_result);             // freeスタック [(l_list[0] - l_list[9]) remain remain[i + 1] x_result x1]
-      // lint_to_string(x1, buf1);                                   // --------------- FOR DEBUG--------------- 
-      // printf("x1 = %s\n", buf1);                                  // --------------- FOR DEBUG--------------- 
-
-      // 10倍してゼロを一つ増やす
-      Lint x2 = Lint_pow_10(x1, 1);                               // freeスタック [(l_list[0] - l_list[9]) remain remain[i + 1] x_result x1 x2]
-      // aを一桁下ろす
-      remain[i] = addition(x2, l_list[a.digit[i - 1]]);           // freeスタック [(l_list[0] - l_list[9]) remain remain[i + 1] x_result x1 x2 remain[i]]
-      free(x1.digit);                                             // freeスタック [(l_list[0] - l_list[9]) remain remain[i + 1] x_result x2 remain[i]]
-      free(x2.digit);                                             // freeスタック [(l_list[0] - l_list[9]) remain remain[i + 1] x_result remain[i]]
-    } else {                                                    // else
-      // 余りになる
-      remain[i] = subtraction(remain[i + 1], x_result);           // freeスタック [(l_list[0] - l_list[9]) remain remain[i + 1] x_result remain[i]]
-    }                                                           // endif
-    free(x_result.digit);                                         // freeスタック [(l_list[0] - l_list[9]) remain remain[i + 1] remain[i]]
-    free(remain[i + 1].digit);                                    // freeスタック [(l_list[0] - l_list[9]) remain remain[i]]
-  }                                                           // endfor1
-  free(remain[0].digit);                                          // freeスタック [(l_list[0] - l_list[9]) remain]
-  free(remain);                                                   // freeスタック [(l_list[0] - l_list[9])]
-  for(int i = 0; i < 10; i++)
-    free(l_list[i].digit);                                        // freeスタック []
-  
-  return ans;
+  div_calc(&ans, a, b, a_pos, remain);
+  // lint_to_string(ans, DEBUG_BUF);
+  // DEBUG_PRINTF("ans = %s\n", DEBUG_BUF);
+  Lint ans_zero_deleted = Lint_delete_zero(ans);
+  // lint_to_string(ans_zero_deleted, DEBUG_BUF);
+  // DEBUG_PRINTF("ans_zero_deleted = %s\n", DEBUG_BUF);
+  // DEBUG_PRINTF("ans_zero_deleted.loop_start = %d\n", ans_zero_deleted.loop_start);
+  // DEBUG_PRINTF("ans_zero_deleted.loop_end = %d\n", ans_zero_deleted.loop_end);
+  for(int i = 0; i < MAX_LENGTH; i++)
+    Lint_free(remain[i]);
+  FREE(remain);
+  Lint_free(a_10n);
+  Lint_free(b_10n);
+  Lint_free(ans);
+  return ans_zero_deleted;
 }
