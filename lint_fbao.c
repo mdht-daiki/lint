@@ -104,7 +104,7 @@ Lint division(Lint a, Lint b) {
   int a_pos = a_10n.length - remain_length;
   int record_start_i;
 
-  div_calc(&ans, a, b, a_pos, remain);
+  div_calc(&ans, a_10n, b_10n, a_pos, remain);
   // lint_to_string(ans, DEBUG_BUF);
   // DEBUG_PRINTF("ans = %s\n", DEBUG_BUF);
   Lint ans_zero_deleted = Lint_delete_zero(ans);
@@ -119,4 +119,33 @@ Lint division(Lint a, Lint b) {
   Lint_free(b_10n);
   Lint_free(ans);
   return ans_zero_deleted;
+}
+
+Lint power(Lint a, int n) {
+  Lint ans, power_prev;
+  if(n == 0) {
+    ans = Lint_one_digit(1);
+    return ans;
+  } else if(n == 1) {
+    Lint_constructor(&ans, a.length, 1);
+    lint_copy(a, &ans);
+    return ans;
+  }
+  power_prev = power(a, n - 1);
+  ans = multiplication(a, power_prev);
+  Lint_free(power_prev);
+  return ans;
+}
+
+Lint add_all(Lint *l_list, int n) {
+  Lint ans, add_prev;
+  if(n == 0) {
+    Lint_constructor(&ans, l_list[n].length, 1);
+    lint_copy(l_list[n], &ans);
+    return ans;
+  }
+  add_prev = add_all(l_list, n - 1);
+  ans = addition(add_prev, l_list[n]);
+  Lint_free(add_prev);
+  return ans;
 }

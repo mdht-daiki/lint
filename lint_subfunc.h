@@ -33,4 +33,6 @@ void dp_move(Lint a, Lint b, Lint *a_10n, Lint *b_10n);               /* bが整
 int set_remain_length(Lint a, Lint b);                                /* remainの長さを設定する */
 int set_div_dp(Lint a, Lint b);                                       
 void div_calc(Lint *ans, Lint a, Lint b, int a_pos_init, Lint *remain);
+void DEBUG_PRINT_LINT(char *name, Lint a);
+Lint Lint_10_power_minus(int n);
 #endif

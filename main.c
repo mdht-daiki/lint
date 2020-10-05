@@ -47,10 +47,25 @@ int main(void) {
     printf("lint[0] / lint[1] = %s\n", buf);
     // DEBUG_PRINTF("div.dp = %d\n", div.dp);
     Lint_free(div);
+  } else if(length == 1) {
+    int n;
+    printf("何乗する？：");
+    fgets(buf, sizeof(buf), stdin);
+    sscanf(buf, "%d", &n);
+    Lint pow = power(l_list[0], n);
+    lint_to_string(pow, buf);
+    printf("lint[0] ^ %d = %s\n", n, buf);
+    Lint_free(pow);
+  } else {
+    Lint addall = add_all(l_list, length - 1);
+    lint_to_string(addall, buf);
+    printf("sum = %s\n", buf);
+    Lint_free(addall);
   }
 
   for(i = 0; i < length; i++)
     Lint_free(l_list[i]);
   FREE(l_list);
+
   return 0;
 }

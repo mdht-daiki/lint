@@ -30,8 +30,8 @@ void Lint_constructor(Lint *l_this, int length, int play) {
     l_this->digit[length] = LINT_END;
   l_this->sign_pm = PLUS;
   l_this->dp = 0;
-  l_this->loop_start = -1;
-  l_this->loop_end = -1;
+  l_this->loop_start = LINT_END;
+  l_this->loop_end = LINT_END;
 }
 
 /*  */
@@ -124,7 +124,7 @@ void lint_to_string(Lint l, char *ans) {
   if(l.sign_pm == MINUS)
     ans[ans_pos++] = '-';
   
-  for(int digit_pos = l.length - 1; digit_pos >= 0; digit_pos--) {
+  for(int digit_pos = l.length - 1; digit_pos >= -1; digit_pos--) {
     // DEBUG_PRINTF("digit_pos = %d\n", digit_pos);
     // DEBUG_PRINTF("l.loop_start = %d\n", l.loop_start);
     // DEBUG_PRINTF("l.loop_end = %d\n", l.loop_end);
@@ -134,9 +134,11 @@ void lint_to_string(Lint l, char *ans) {
       ans[ans_pos++] = ')';
       break;
     }
-    ans[ans_pos++] = l.digit[digit_pos] + '0';
-    if(l.dp != 0 && digit_pos == l.dp)
-      ans[ans_pos++] = '.';
+    if(digit_pos >= 0) {
+      ans[ans_pos++] = l.digit[digit_pos] + '0';
+      if(l.dp != 0 && digit_pos == l.dp)
+        ans[ans_pos++] = '.';
+    }
   }
   ans[ans_pos] = '\0';
 }
@@ -357,10 +359,14 @@ Lint Lint_delete_zero(Lint l) {
   }
   if(zero_after_dp != 0) {
     l_partial = Lint_partial(l, l.length - zero_after_dp);
-    if(l.loop_start > 0)
+    if(l.loop_start != LINT_END)
       l_partial.loop_start = l.loop_start - zero_after_dp;
-    if(l.loop_end > 0)
+    if(l.loop_end != LINT_END){
       l_partial.loop_end = l.loop_end - zero_after_dp;
+      // DEBUG_PRINTF("l.loop_end = %d\n", l.loop_end);
+      // DEBUG_PRINTF("zero_after_dp = %d\n", zero_after_dp);
+      // DEBUG_PRINTF("l_partial.loop_end = %d\n", l_partial.loop_end);
+    }
     return l_partial;
   }
   Lint_constructor(&l_partial, l.length, 1);
@@ -506,11 +512,7 @@ void div_calc(Lint *ans, Lint a, Lint b, int a_pos_init, Lint *remain) {
   for(int i = MAX_LENGTH - 1; i >= 0; i--) {
     ans->digit[i] = 9;
     for(int j = 1; j <= 9; j++) {
-      Lint x = multiplication(b, l_list[j]);
-      // lint_to_string(x, DEBUG_BUF);
-      // DEBUG_PRINTF("x = %s\n", DEBUG_BUF);
-      // lint_to_string(remain[i + 1], DEBUG_BUF);
-      // DEBUG_PRINTF("remain[%d] = %s\n", i + 1, DEBUG_BUF);
+      Lint x = multiplication(b, l_list[j]);;
       if(Lint_compare(x, remain[i + 1]) == LEFT) {
         ans->digit[i] = j - 1;
         // DEBUG_PRINTF("b * %d > remain[%d]\nans->digit[%d] = %d\n", j, i + 1, i, ans->digit[i]);
@@ -592,3 +594,18 @@ void div_calc(Lint *ans, Lint a, Lint b, int a_pos_init, Lint *remain) {
   }
 }
 
+
+void DEBUG_PRINT_LINT(char *name, Lint a) {
+  lint_to_string(a, DEBUG_BUF);
+  printf("%s = %s\n", name, DEBUG_BUF);
+}
+
+Lint Lint_10_power_minus(int n) {
+  Lint ans;
+  Lint_constructor(&ans, n + 1, 1);
+  Lint one = Lint_one_digit(1);
+  lint_copy(one, &ans);
+  ans.length = n + 1;
+  ans.dp = n;
+  return ans;
+}
