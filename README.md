@@ -1,6 +1,7 @@
 # lint
 多倍長整数を作ってみる
-https://qiita.com/square1001/items/1aa12e04934b6e749962の内容を参考に、C言語での実装をしてみる
+https://qiita.com/square1001/items/1aa12e04934b6e749962
+の内容を参考に、C言語での実装をしてみる
 
 
 現在実装済みの機能
